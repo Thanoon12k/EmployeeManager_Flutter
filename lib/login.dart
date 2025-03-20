@@ -3,26 +3,9 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 
-void main() {
-  runApp(MyApp());
-}
-
-class MyApp extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      debugShowCheckedModeBanner: false,
-      title: 'Employee Manager',
-      theme: ThemeData(
-        primarySwatch: Colors.deepPurple,
-        textTheme: TextTheme(bodyMedium: TextStyle(color: Colors.black)),
-      ),
-      home: LoginScreen(),
-    );
-  }
-}
-
 class LoginScreen extends StatefulWidget {
+  const LoginScreen({super.key});
+
   @override
   _LoginScreenState createState() => _LoginScreenState();
 }
@@ -36,26 +19,32 @@ class _LoginScreenState extends State<LoginScreen> {
   Future<void> _login() async {
     setState(() {
       _isLoading = true;
-      _message = 'Logging in...';
+      _message = 'جاري تسجيل الدخول...';
     });
 
     final String username = _usernameController.text;
     final String password = _passwordController.text;
     final response = await http.post(
-      Uri.parse('https://thanoon.pythonanywhere.com/api/login/'),
+      Uri.parse('https://thanoon.pythonanywhere.com/auth/token/'),
       headers: {'Content-Type': 'application/json'},
       body: json.encode({'username': username, 'password': password}),
     );
 
     if (response.statusCode == 200) {
+      final responseData = json.decode(response.body);
+      final String token = responseData['token'];
+
       SharedPreferences prefs = await SharedPreferences.getInstance();
       await prefs.setString('username', username);
+      await prefs.setString('password', password);
+      await prefs.setString('token', token);
+
       setState(() {
-        _message = 'Login Successful';
+        _message = 'تم تسجيل الدخول بنجاح';
       });
     } else {
       setState(() {
-        _message = 'Error in username or password';
+        _message = 'خطأ في اسم المستخدم أو كلمة المرور';
       });
     }
     setState(() {
@@ -74,7 +63,7 @@ class _LoginScreenState extends State<LoginScreen> {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Text(
-                'Welcome Back!',
+                'مرحبًا بعودتك!',
                 style: TextStyle(
                   fontSize: 32,
                   fontWeight: FontWeight.bold,
@@ -84,7 +73,7 @@ class _LoginScreenState extends State<LoginScreen> {
               ),
               SizedBox(height: 20),
               Text(
-                'Login to your account',
+                'تسجيل الدخول إلى حسابك',
                 style: TextStyle(fontSize: 16, color: Colors.grey[700]),
                 textAlign: TextAlign.center,
               ),
@@ -92,7 +81,7 @@ class _LoginScreenState extends State<LoginScreen> {
               TextField(
                 controller: _usernameController,
                 decoration: InputDecoration(
-                  labelText: 'Username',
+                  labelText: 'اسم المستخدم',
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(10.0),
                   ),
@@ -103,7 +92,7 @@ class _LoginScreenState extends State<LoginScreen> {
               TextField(
                 controller: _passwordController,
                 decoration: InputDecoration(
-                  labelText: 'Password',
+                  labelText: 'كلمة المرور',
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(10.0),
                   ),
@@ -115,28 +104,26 @@ class _LoginScreenState extends State<LoginScreen> {
               _isLoading
                   ? CircularProgressIndicator()
                   : ElevatedButton(
-                    onPressed: _login,
-                    child: Text('Login'),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.deepPurple,
-                      padding: EdgeInsets.symmetric(
-                        horizontal: 50,
-                        vertical: 15,
+                      onPressed: _login,
+                      style: ElevatedButton.styleFrom(
+                        padding: EdgeInsets.symmetric(
+                          horizontal: 50,
+                          vertical: 15,
+                        ),
+                        textStyle: TextStyle(fontSize: 18),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10.0),
+                        ),
                       ),
-                      textStyle: TextStyle(fontSize: 18),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10.0),
-                      ),
+                      child: Text('تسجيل الدخول'),
                     ),
-                  ),
               SizedBox(height: 20),
               Text(
                 _message,
                 style: TextStyle(
-                  color:
-                      _message == 'Login Successful'
-                          ? Colors.green
-                          : Colors.red,
+                  color: _message == 'تم تسجيل الدخول بنجاح'
+                      ? Colors.green
+                      : Colors.red,
                   fontSize: 16,
                   fontWeight: FontWeight.bold,
                 ),
