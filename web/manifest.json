@@ -1,6 +1,6 @@
 {
-    "name": "emp_manager_front_end",
-    "short_name": "emp_manager_front_end",
+    "name": "employee_manager_app",
+    "short_name": "employee_manager_app",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",

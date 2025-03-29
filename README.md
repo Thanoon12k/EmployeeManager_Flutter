@@ -1,4 +1,4 @@
-# emp_manager_front_end
+# employee_manager_app
 
 A new Flutter project.
 
