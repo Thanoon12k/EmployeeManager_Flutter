@@ -96,10 +96,7 @@ class _AnnouncementScreenState extends State<AnnouncementScreen> {
       textDirection: TextDirection.rtl,
       child: Scaffold(
         appBar: AppBar(
-          title: const Text(
-            'الكتب الرسمية',
-            style: TextStyle(fontFamily: 'Cairo'),
-          ),
+          title: const Text('الإعلانات', style: TextStyle(fontFamily: 'Cairo')),
           actions: [
             Switch(
               value: _showUnreadOnly,
@@ -114,7 +111,7 @@ class _AnnouncementScreenState extends State<AnnouncementScreen> {
               padding: const EdgeInsets.only(right: 8.0),
               child: Center(
                 child: Text(
-                  _showUnreadOnly ? 'غير مقروء فقط' : 'جميع الكتب',
+                  _showUnreadOnly ? 'غير مقروء فقط' : 'جميع الاعلانات',
                   style: const TextStyle(fontSize: 16, fontFamily: 'Cairo'),
                 ),
               ),

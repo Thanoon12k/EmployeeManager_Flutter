@@ -1,5 +1,8 @@
-import 'package:employee_manager_app/classes.dart';
-import 'package:employee_manager_app/home.dart';
+import 'dart:async';
+import 'dart:io';
+
+import 'package:employee_manager_app/classes.dart'; // Import your User model here
+import 'package:employee_manager_app/home.dart'; // Import the MainScreen widget
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:http/http.dart' as http;
@@ -19,86 +22,93 @@ class _LoginScreenState extends State<LoginScreen> {
   bool _isLoading = false;
 
   Future<void> _login() async {
+    if (_usernameController.text.trim().isEmpty ||
+        _passwordController.text.trim().isEmpty) {
+      setState(() {
+        _message = 'يرجى إدخال اسم المستخدم وكلمة المرور';
+      });
+      return;
+    }
+
     setState(() {
       _isLoading = true;
-      _message = 'جاري تسجيل الدخول...';
     });
 
     try {
-      print("إرسال طلب تسجيل الدخول...");
-
-      final response = await http.post(
-        Uri.parse('https://thanoon.pythonanywhere.com/api-token-auth/'),
-        headers: {'Content-Type': 'application/json'},
-        body: json.encode({
-          'username': _usernameController.text.trim(),
-          'password': _passwordController.text.trim(),
-        }),
-      );
-
-      print("تم استلام الرد من السيرفر: ${response.statusCode}");
+      final response = await http
+          .post(
+            Uri.parse('https://thanoon.pythonanywhere.com/api-token-auth/'),
+            headers: {'Content-Type': 'application/json'},
+            body: json.encode({
+              'username': _usernameController.text.trim(),
+              'password': _passwordController.text.trim(),
+            }),
+          )
+          .timeout(const Duration(seconds: 10));
 
       if (response.statusCode == 200) {
         final responseData = json.decode(response.body);
-        print("بيانات المستخدم المسترجعة: $responseData");
 
-        // التأكد من أن البيانات تحتوي على المعلومات المطلوبة
-        if (!responseData.containsKey('id') ||
-            !responseData.containsKey('username') ||
-            !responseData.containsKey('email') ||
-            !responseData.containsKey('token')) {
+        if (responseData.containsKey('id') &&
+            responseData.containsKey('username') &&
+            responseData.containsKey('token')) {
+          final User user = User(
+            id: int.tryParse(responseData['id'].toString()) ?? 0,
+            username: responseData['username'],
+            email: responseData['email'],
+            birthDate: responseData['birth_date'] ?? 'not known',
+            address: responseData['address'] ?? '',
+            phone: responseData['phone'] ?? '',
+            image: responseData['image'] ?? '',
+            token: responseData['token'],
+          );
+
+          // Save user data in SharedPreferences
+          SharedPreferences prefs = await SharedPreferences.getInstance();
+          await prefs.setString('id', user.id.toString());
+          await prefs.setString('username', user.username);
+          await prefs.setString('email', user.email);
+          await prefs.setString('birth_date', user.birthDate ?? 'unknown');
+          await prefs.setString('address', user.address);
+          await prefs.setString('phone', user.phone);
+          await prefs.setString('image', user.image ?? '');
+          await prefs.setString('token', user.token);
+
+          setState(() {
+            _message = 'تم تسجيل الدخول بنجاح';
+          });
+
+          if (mounted) {
+            Future.delayed(const Duration(seconds: 1), () {
+              Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(builder: (context) => const MainScreen()),
+              );
+            });
+          }
+        } else {
           throw Exception("البيانات المسترجعة غير مكتملة!");
         }
-
-        final User user = User(
-          id: int.tryParse(responseData['id'].toString()) ?? 0,
-          username: responseData['username'],
-          email: responseData['email'],
-          birthDate: responseData['birth_date'] ?? 'not known',
-          address: responseData['address'] ?? '',
-          phone: responseData['phone'] ?? '',
-          image: responseData['image'] ?? '',
-          token: responseData['token'],
-        );
-
-        // حفظ بيانات المستخدم في SharedPreferences
-        SharedPreferences prefs = await SharedPreferences.getInstance();
-        await prefs.setString('id', user.id.toString());
-        await prefs.setString('username', user.username);
-        await prefs.setString('email', user.email);
-        await prefs.setString('birth_date', user.birthDate ?? 'unknown');
-        await prefs.setString('address', user.address);
-        await prefs.setString('phone', user.phone);
-        await prefs.setString('image', user.image ?? '');
-        await prefs.setString('token', user.token);
-
-        print("تم حفظ بيانات المستخدم بنجاح في SharedPreferences.");
-
+      } else if (response.statusCode == 401) {
         setState(() {
-          _message = 'تم تسجيل الدخول بنجاح';
+          _message = 'اسم المستخدم أو كلمة المرور غير صحيح';
         });
-
-        // الانتقال إلى الشاشة الرئيسية بعد التحقق من أن السياق لا يزال متاحًا
-        if (mounted) {
-          Future.delayed(const Duration(seconds: 1), () {
-            Navigator.pushReplacement(
-              context,
-              MaterialPageRoute(builder: (context) => MainScreen(user: user)),
-            );
-          });
-        }
       } else {
-        print("خطأ في تسجيل الدخول، رمز الحالة: ${response.statusCode}");
-        print("الرد من السيرفر: ${response.body}");
-
         setState(() {
-          _message = 'خطأ في اسم المستخدم أو كلمة المرور';
+          _message = 'حدث خطأ في تسجيل الدخول. حاول مجددًا.';
         });
       }
-    } catch (e) {
-      print("حدث خطأ أثناء تسجيل الدخول: $e");
+    } on SocketException {
       setState(() {
-        _message = 'حدث خطأ غير متوقع، يرجى المحاولة لاحقًا';
+        _message = 'تعذر الاتصال بالخادم. تحقق من اتصال الإنترنت.';
+      });
+    } on TimeoutException {
+      setState(() {
+        _message = 'انتهت مهلة الاتصال. حاول مجددًا.';
+      });
+    } catch (e) {
+      setState(() {
+        _message = 'حدث خطأ غير متوقع. حاول لاحقًا.';
       });
     } finally {
       setState(() {
@@ -179,10 +189,9 @@ class _LoginScreenState extends State<LoginScreen> {
               Text(
                 _message,
                 style: TextStyle(
-                  color:
-                      _message == 'تم تسجيل الدخول بنجاح'
-                          ? Colors.green
-                          : Colors.red,
+                  color: _message == 'تم تسجيل الدخول بنجاح'
+                      ? Colors.green
+                      : Colors.red,
                   fontSize: 16,
                   fontWeight: FontWeight.bold,
                 ),

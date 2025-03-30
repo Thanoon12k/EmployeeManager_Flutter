@@ -69,7 +69,7 @@ class MyApp extends StatelessWidget {
           }
 
           if (snapshot.hasData && snapshot.data != null) {
-            return MainScreen(user: snapshot.data!);
+            return MainScreen();
           } else {
             return const LoginScreen();
           }

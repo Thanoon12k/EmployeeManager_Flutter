@@ -1,0 +1,56 @@
+GET https://thanoon.pythonanywhere.com/get-user-announcements/ HTTP/1.1
+Authorization: Token b895b0926cbd77e5e117247e6d48038439f7e81e
+
+
+###
+GET http://thanoon.pythonanywhere.com/get-user-reports/ HTTP/1.1
+Authorization: Token b895b0926cbd77e5e117247e6d48038439f7e81e
+
+###
+POST http://thanoon.pythonanywhere.com/submit-report/ HTTP/1.1
+Authorization: Token 9c40915d3736b64e09c7a66b3f88c195fbd2cdae
+Content-Type: application/json
+
+{
+    "report_id": 1,
+    "answers": [
+        {
+            "question_id": 1,
+            "text_answer": "ali"
+        },
+        {
+            "question_id": 2,
+            "text_answer": "amal"
+        },
+        {
+            "question_id": 3,
+            "true_false_answer": false
+        },
+        {
+            "question_id": 4,
+            "selected_option": "2"
+        },
+        {
+            "question_id": 5,
+            "true_false_answer": true
+        },
+        {
+            "question_id": 6,
+            "selected_option": "العراق"
+        }
+    ]
+}
+
+
+###
+GET http://thanoon.pythonanywhere.com/get-users-list/ HTTP/1.1
+
+###
+POST http://thanoon.pythonanywhere.com/api-token-auth/ HTTP/1.1
+Content-Type: application/json
+
+{
+    "username": "thanoon",
+    "password": "123"
+}
+###
