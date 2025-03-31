@@ -15,7 +15,7 @@ class AnnouncementScreen extends StatefulWidget {
 class _AnnouncementScreenState extends State<AnnouncementScreen> {
   bool _showUnreadOnly = false;
   List<Announcement> _allAnnouncements = [];
-  List<Announcement> _filteredAnnouncements = [];
+  List<Announcement> readed_announcements = [];
   bool _isLoading = true;
   bool _hasError = false;
 
@@ -67,7 +67,7 @@ class _AnnouncementScreenState extends State<AnnouncementScreen> {
   Future<void> _applyFilter() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     setState(() {
-      _filteredAnnouncements =
+      readed_announcements =
           _showUnreadOnly
               ? _allAnnouncements
                   .where(
@@ -123,13 +123,13 @@ class _AnnouncementScreenState extends State<AnnouncementScreen> {
                 ? const Center(child: CircularProgressIndicator())
                 : _hasError
                 ? const Center(child: Text('حدث خطأ أثناء تحميل البيانات!'))
-                : _filteredAnnouncements.isEmpty
+                : readed_announcements.isEmpty
                 ? const Center(child: Text('لا توجد كتب رسمية لعرضها!'))
                 : ListView.builder(
                   padding: const EdgeInsets.all(10),
-                  itemCount: _filteredAnnouncements.length,
+                  itemCount: readed_announcements.length,
                   itemBuilder: (context, index) {
-                    Announcement book = _filteredAnnouncements[index];
+                    Announcement book = readed_announcements[index];
                     return Card(
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(10),

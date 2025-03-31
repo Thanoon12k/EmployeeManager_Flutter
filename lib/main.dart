@@ -13,41 +13,36 @@ class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
   Future<User?> _getUserDetails() async {
-    SharedPreferences prefs = await SharedPreferences.getInstance();
+    try {
+      final SharedPreferences prefs = await SharedPreferences.getInstance();
 
-    String? username = prefs.getString('username');
-    if (username == null) {
-      print('cannot find username in shared preferences');
+      String? username = prefs.getString('username');
+      if (username == null) return null;
+
+      String? id = prefs.getString('id');
+      String email = prefs.getString('email') ?? "لم يتم تسجيله";
+      String? birthDate = prefs.getString('birth_date');
+      String? address = prefs.getString('address') ?? "لم يتم تسجيله";
+      String? phone = prefs.getString('phone') ?? "لم يتم تسجيله";
+      String? image = prefs.getString('image');
+      String? token = prefs.getString('token') ?? "bad token";
+      bool? is_manager = prefs.getBool('is_manager');
+
+      return User(
+        id: int.tryParse(id ?? '-99') ?? -99,
+        username: username,
+        email: email,
+        birthDate: birthDate,
+        address: address,
+        phone: phone,
+        image: image,
+        token: token,
+        is_manager: is_manager ?? false,
+      );
+    } catch (e) {
+      debugPrint("Error fetching user details: $e");
       return null;
     }
-
-    String? id = prefs.getString('id');
-    String? email = prefs.getString('email');
-    String? birthDate = prefs.getString('birth_date');
-    String? address = prefs.getString('address');
-    String? phone = prefs.getString('phone');
-    String? image = prefs.getString('image');
-    String? token = prefs.getString('token');
-
-    if (id == null ||
-        email == null ||
-        address == null ||
-        phone == null ||
-        token == null) {
-      print("Some required user details are missing!");
-      return null;
-    }
-
-    return User(
-      id: int.tryParse(id) ?? 0, // يجعل التحويل أكثر أمانًا
-      username: username,
-      email: email,
-      birthDate: birthDate,
-      address: address,
-      phone: phone,
-      image: image,
-      token: token,
-    );
   }
 
   @override

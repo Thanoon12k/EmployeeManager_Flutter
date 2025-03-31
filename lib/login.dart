@@ -1,15 +1,13 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
-
-import 'package:employee_manager_app/classes.dart'; // Import your User model here
-import 'package:employee_manager_app/home.dart'; // Import the MainScreen widget
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:http/http.dart' as http;
-import 'dart:convert';
+import 'package:employee_manager_app/home.dart';
 
 class LoginScreen extends StatefulWidget {
-  const LoginScreen({super.key});
+  const LoginScreen({Key? key}) : super(key: key);
 
   @override
   _LoginScreenState createState() => _LoginScreenState();
@@ -22,6 +20,7 @@ class _LoginScreenState extends State<LoginScreen> {
   bool _isLoading = false;
 
   Future<void> _login() async {
+    // Validate username and password inputs
     if (_usernameController.text.trim().isEmpty ||
         _passwordController.text.trim().isEmpty) {
       setState(() {
@@ -32,9 +31,11 @@ class _LoginScreenState extends State<LoginScreen> {
 
     setState(() {
       _isLoading = true;
+      _message = '';
     });
 
     try {
+      // Make POST request to login API
       final response = await http
           .post(
             Uri.parse('https://thanoon.pythonanywhere.com/api-token-auth/'),
@@ -47,37 +48,38 @@ class _LoginScreenState extends State<LoginScreen> {
           .timeout(const Duration(seconds: 10));
 
       if (response.statusCode == 200) {
+        // Process successful login
         final responseData = json.decode(response.body);
 
         if (responseData.containsKey('id') &&
             responseData.containsKey('username') &&
             responseData.containsKey('token')) {
-          final User user = User(
-            id: int.tryParse(responseData['id'].toString()) ?? 0,
-            username: responseData['username'],
-            email: responseData['email'],
-            birthDate: responseData['birth_date'] ?? 'not known',
-            address: responseData['address'] ?? '',
-            phone: responseData['phone'] ?? '',
-            image: responseData['image'] ?? '',
-            token: responseData['token'],
-          );
-
           // Save user data in SharedPreferences
-          SharedPreferences prefs = await SharedPreferences.getInstance();
-          await prefs.setString('id', user.id.toString());
-          await prefs.setString('username', user.username);
-          await prefs.setString('email', user.email);
-          await prefs.setString('birth_date', user.birthDate ?? 'unknown');
-          await prefs.setString('address', user.address);
-          await prefs.setString('phone', user.phone);
-          await prefs.setString('image', user.image ?? '');
-          await prefs.setString('token', user.token);
+          final SharedPreferences prefs = await SharedPreferences.getInstance();
+          await prefs.setString('id', responseData['id'].toString());
+          await prefs.setString('username', responseData['username']);
+          await prefs.setString(
+            'email',
+            responseData['email'] ?? "لم يتم تسجيله",
+          );
+          await prefs.setString(
+            'birth_date',
+            responseData['birth_date'] ?? "غير معروف",
+          );
+          await prefs.setString('address', responseData['address'] ?? "");
+          await prefs.setString('phone', responseData['phone'] ?? "");
+          await prefs.setString('image', responseData['image'] ?? "");
+          await prefs.setString('token', responseData['token']);
+          await prefs.setBool(
+            'is_manager',
+            responseData['is_manager'] ?? false,
+          );
 
           setState(() {
             _message = 'تم تسجيل الدخول بنجاح';
           });
 
+          // Navigate to MainScreen after a short delay
           if (mounted) {
             Future.delayed(const Duration(seconds: 1), () {
               Navigator.pushReplacement(
@@ -87,7 +89,7 @@ class _LoginScreenState extends State<LoginScreen> {
             });
           }
         } else {
-          throw Exception("البيانات المسترجعة غير مكتملة!");
+          throw Exception('Incomplete user data from server');
         }
       } else if (response.statusCode == 401) {
         setState(() {
@@ -95,7 +97,7 @@ class _LoginScreenState extends State<LoginScreen> {
         });
       } else {
         setState(() {
-          _message = 'حدث خطأ في تسجيل الدخول. حاول مجددًا.';
+          _message = 'حدث خطأ أثناء تسجيل الدخول. حاول مرة أخرى.';
         });
       }
     } on SocketException {
@@ -108,7 +110,7 @@ class _LoginScreenState extends State<LoginScreen> {
       });
     } catch (e) {
       setState(() {
-        _message = 'حدث خطأ غير متوقع. حاول لاحقًا.';
+        _message = 'حدث خطأ غير متوقع: $e';
       });
     } finally {
       setState(() {
@@ -189,9 +191,10 @@ class _LoginScreenState extends State<LoginScreen> {
               Text(
                 _message,
                 style: TextStyle(
-                  color: _message == 'تم تسجيل الدخول بنجاح'
-                      ? Colors.green
-                      : Colors.red,
+                  color:
+                      _message == 'تم تسجيل الدخول بنجاح'
+                          ? Colors.green
+                          : Colors.red,
                   fontSize: 16,
                   fontWeight: FontWeight.bold,
                 ),

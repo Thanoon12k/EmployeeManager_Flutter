@@ -18,6 +18,7 @@ class MainScreen extends StatelessWidget {
     final birthDate = prefs.getString('birthDate');
     final image = prefs.getString('image');
     final token = prefs.getString('token');
+    final is_manager = prefs.getBool('is_manager') ?? false;
 
     if (username != null && email != null) {
       return User(
@@ -29,6 +30,7 @@ class MainScreen extends StatelessWidget {
         birthDate: birthDate,
         image: image,
         token: token ?? '',
+        is_manager: is_manager,
       );
     }
     return null;
@@ -189,8 +191,7 @@ class InfoRow extends StatelessWidget {
   final String label;
   final String value;
 
-  const InfoRow({Key? key, required this.label, required this.value})
-    : super(key: key);
+  const InfoRow({super.key, required this.label, required this.value});
 
   @override
   Widget build(BuildContext context) {

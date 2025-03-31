@@ -7,6 +7,7 @@ class User {
   final String phone;
   final String? image;
   final String token;
+  final bool is_manager;
 
   User({
     required this.id,
@@ -17,6 +18,7 @@ class User {
     required this.phone,
     this.image,
     required this.token,
+    required this.is_manager,
   });
 
   factory User.fromJson(Map<String, dynamic> json) {
@@ -29,6 +31,7 @@ class User {
       phone: json['phone'] ?? '',
       image: json['image'] ?? '',
       token: json['token'] ?? '',
+      is_manager: json['is_manager'] ?? false,
     );
   }
 }
@@ -59,36 +62,33 @@ class Announcement {
   }
 }
 
-
-
 class Question {
   final int id;
   final String questionText;
   final String questionType;
-  final String? option1;
-  final String? option2;
-  final String? option3;
-  final String? option4;
+  final List<String>? options; // For multiple-choice questions
+  final bool isStatistic;
 
   Question({
     required this.id,
     required this.questionText,
     required this.questionType,
-    this.option1,
-    this.option2,
-    this.option3,
-    this.option4,
+    this.options,
+    required this.isStatistic,
   });
 
   factory Question.fromJson(Map<String, dynamic> json) {
+    List<String>? optionsList;
+    if (json['options_data'] != null) {
+      optionsList = (json['options_data'] as String).split('-');
+    }
+
     return Question(
       id: json['id'],
-      questionText: json['question_text'],
+      questionText: json['question'],
       questionType: json['question_type'],
-      option1: json['option1'],
-      option2: json['option2'],
-      option3: json['option3'],
-      option4: json['option4'],
+      options: optionsList,
+      isStatistic: json['is_statistic'] ?? false,
     );
   }
 }
@@ -96,21 +96,22 @@ class Question {
 class Report {
   final int id;
   final String title;
-  final String description;
+  final String? description;
   final String pubDate;
   final List<Question> questions;
 
   Report({
     required this.id,
     required this.title,
-    required this.description,
+    this.description,
     required this.pubDate,
     required this.questions,
   });
 
   factory Report.fromJson(Map<String, dynamic> json) {
-    var list = json['questions'] as List;
-    List<Question> questionsList = list.map((i) => Question.fromJson(i)).toList();
+    List<dynamic> list = json['questions'] ?? [];
+    List<Question> questionsList =
+        list.map((i) => Question.fromJson(i)).toList();
 
     return Report(
       id: json['id'],
@@ -121,4 +122,3 @@ class Report {
     );
   }
 }
-

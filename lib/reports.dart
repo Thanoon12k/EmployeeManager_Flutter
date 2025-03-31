@@ -4,6 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:url_launcher/url_launcher.dart';
+import 'dart:developer';
 
 class ReportScreen extends StatefulWidget {
   const ReportScreen({super.key});
@@ -17,21 +19,41 @@ class _ReportScreenState extends State<ReportScreen> {
   List<String> _submittedReports = [];
   bool _isLoading = true;
   bool _hasError = false;
+  bool _isManager = false;
 
   @override
   void initState() {
     super.initState();
+    _checkIfUserManager();
     _fetchReports();
+    _checkSubmittedReports();
+  }
+
+  /// Check if the user is a manager
+  Future<void> _checkIfUserManager() async {
+    final SharedPreferences prefs = await SharedPreferences.getInstance();
+    setState(() {
+      _isManager = prefs.getBool('is_manager') ?? false;
+      _isManager = true;
+    });
+  }
+
+  /// Fetch submitted reports from SharedPreferences
+  Future<void> _checkSubmittedReports() async {
+    final SharedPreferences prefs = await SharedPreferences.getInstance();
+    _submittedReports = prefs.getStringList('submitted_reports') ?? [];
   }
 
   /// Fetch reports from the API and update the UI
   Future<void> _fetchReports() async {
+    setState(() {
+      _isLoading = true;
+      _hasError = false;
+    });
+
     try {
       final SharedPreferences prefs = await SharedPreferences.getInstance();
-      final String? token = prefs.getString('token'); // Retrieve token
-      _submittedReports =
-          prefs.getStringList('submitted_reports') ??
-          []; // Fetch submitted reports
+      final String? token = prefs.getString('token');
 
       if (token == null || token.isEmpty) {
         throw Exception("Token is missing in SharedPreferences.");
@@ -41,28 +63,20 @@ class _ReportScreenState extends State<ReportScreen> {
         Uri.parse('https://thanoon.pythonanywhere.com/get-user-reports/'),
         headers: {'Authorization': 'Token $token'},
       );
+      print("Response status code: ${response.statusCode}");
 
       if (response.statusCode == 200) {
-        Map<String, dynamic> jsonResponse = json.decode(
-          utf8.decode(response.bodyBytes),
-        );
-        List<dynamic> reportsList = jsonResponse['reports'] ?? [];
+        final jsonResponse = json.decode(utf8.decode(response.bodyBytes));
+        final List<dynamic> reportsList = jsonResponse['reports'] ?? [];
 
         setState(() {
           _reports = reportsList.map((item) => Report.fromJson(item)).toList();
           _isLoading = false;
-          _hasError = false;
         });
       } else {
-        print('Error: ${response.statusCode}');
-        print('Response body: ${response.body}');
-        setState(() {
-          _isLoading = false;
-          _hasError = true;
-        });
+        throw Exception("Error: ${response.statusCode}, ${response.body}");
       }
     } catch (e) {
-      print('Error fetching reports: $e');
       setState(() {
         _isLoading = false;
         _hasError = true;
@@ -79,7 +93,17 @@ class _ReportScreenState extends State<ReportScreen> {
       return submittedReports.contains(report.id.toString());
     } catch (e) {
       print("Error checking if report is submitted: $e");
-      return false; // Default to false if an error occurs
+      return false;
+    }
+  }
+
+  /// Open a webpage in the browser
+  Future<void> _openWebPage(String url) async {
+    final Uri uri = Uri.parse(url);
+    try {
+      await launchUrl(uri, mode: LaunchMode.externalApplication);
+    } catch (e) {
+      log('Could not launch $url: $e', name: 'ReportScreen');
     }
   }
 
@@ -88,6 +112,23 @@ class _ReportScreenState extends State<ReportScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('التقارير', style: TextStyle(fontFamily: 'Cairo')),
+        actions: [
+          if (_isManager)
+            IconButton(
+              icon: const Icon(Icons.add),
+              tooltip: 'إضافة تقرير جديد',
+              onPressed: () {
+                _openWebPage(
+                  'https://thanoon.pythonanywhere.com/admin/mainapp/report/add/',
+                );
+              },
+            ),
+          IconButton(
+            icon: const Icon(Icons.refresh),
+            tooltip: 'تحديث',
+            onPressed: _fetchReports,
+          ),
+        ],
       ),
       body:
           _isLoading
@@ -115,17 +156,27 @@ class _ReportScreenState extends State<ReportScreen> {
                             report.title,
                             style: const TextStyle(fontFamily: 'Cairo'),
                           ),
-                          subtitle: Text(
-                            report.description,
-                            style: const TextStyle(fontFamily: 'Cairo'),
+                          trailing: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              if (_isManager)
+                                IconButton(
+                                  icon: const Icon(Icons.bar_chart),
+                                  tooltip: 'عرض الإحصائيات',
+                                  onPressed: () {
+                                    _openWebPage(
+                                      'https://thanoon.pythonanywhere.com/?report_id=${report.id}',
+                                    );
+                                    _fetchReports();
+                                  },
+                                ),
+                              if (isSubmitted)
+                                const Icon(
+                                  Icons.check_circle,
+                                  color: Colors.green,
+                                ),
+                            ],
                           ),
-                          trailing:
-                              isSubmitted
-                                  ? const Icon(
-                                    Icons.check_circle,
-                                    color: Colors.green,
-                                  )
-                                  : null,
                           onTap: () {
                             Navigator.push(
                               context,

@@ -2,21 +2,21 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:employee_manager_app/classes.dart';
+import 'classes.dart'; // Import the above classes
 
 class ReportDetailsScreen extends StatefulWidget {
   final Report report;
 
-  const ReportDetailsScreen({super.key, required this.report});
+  const ReportDetailsScreen({Key? key, required this.report}) : super(key: key);
 
   @override
   _ReportDetailsScreenState createState() => _ReportDetailsScreenState();
 }
 
 class _ReportDetailsScreenState extends State<ReportDetailsScreen> {
-  final Map<int, dynamic> _answers = {}; // لتخزين إجابات المستخدم
+  final Map<int, dynamic> _answers = {}; // Stores user answers
   bool _isSubmitting = false;
-  bool _isSubmitted = false; // حالة التأكد من إرسال التقرير مسبقًا
+  bool _isSubmitted = false;
 
   @override
   void initState() {
@@ -26,8 +26,6 @@ class _ReportDetailsScreenState extends State<ReportDetailsScreen> {
 
   Future<void> _checkIfSubmitted() async {
     final SharedPreferences prefs = await SharedPreferences.getInstance();
-    print("shhreed : ${prefs.getStringList('submitted_reports')}");
-    // استرجاع قائمة التقارير المرسلة مسبقًا
     final List<String> submittedReports =
         prefs.getStringList('submitted_reports') ?? [];
 
@@ -53,15 +51,12 @@ class _ReportDetailsScreenState extends State<ReportDetailsScreen> {
         'Content-Type': 'application/json',
       },
       body: jsonEncode({
-        "report_id": widget.report.id,
+        "report_title": widget.report.title,
         "answers":
-            _answers.entries.map((entry) {
+            widget.report.questions.map((question) {
               return {
-                "question_id": entry.key,
-                if (entry.value is String) "text_answer": entry.value,
-                if (entry.value is bool) "true_false_answer": entry.value,
-                if (entry.value is int)
-                  "selected_option": entry.value.toString(),
+                "question_title": question.questionText,
+                "answer_data": _answers[question.id]?.toString() ?? "",
               };
             }).toList(),
       }),
@@ -93,8 +88,12 @@ class _ReportDetailsScreenState extends State<ReportDetailsScreen> {
         ),
       );
 
+      final List<String> submittedReports =
+          prefs.getStringList('submitted_reports') ?? [];
+      submittedReports.add(widget.report.id.toString());
+      await prefs.setStringList('submitted_reports', submittedReports);
       setState(() {
-        _isSubmitted = true; // منع التعديل إذا كان التقرير مرسل مسبقًا
+        _isSubmitted = true;
       });
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -105,6 +104,44 @@ class _ReportDetailsScreenState extends State<ReportDetailsScreen> {
           backgroundColor: Colors.red,
         ),
       );
+    }
+  }
+
+  Widget _buildQuestionCard(Question question) {
+    if (question.questionType == 'TEXT') {
+      return TextField(
+        onChanged: (value) => _answers[question.id] = value,
+        decoration: const InputDecoration(hintText: 'أدخل إجابتك هنا'),
+        enabled: !_isSubmitted,
+      );
+    } else if (question.questionType == 'T/F') {
+      return SwitchListTile(
+        title: const Text('نعم / لا'),
+        value: _answers[question.id] ?? false,
+        onChanged:
+            _isSubmitted
+                ? null
+                : (value) => setState(() => _answers[question.id] = value),
+      );
+    } else if (question.questionType == 'multiple_choice' &&
+        question.options != null) {
+      return Column(
+        children:
+            question.options!.map((option) {
+              return RadioListTile<String>(
+                title: Text(option),
+                value: option,
+                groupValue: _answers[question.id],
+                onChanged:
+                    _isSubmitted
+                        ? null
+                        : (value) =>
+                            setState(() => _answers[question.id] = value),
+              );
+            }).toList(),
+      );
+    } else {
+      return const Text('نوع السؤال غير مدعوم أو خيارات فارغة');
     }
   }
 
@@ -119,117 +156,56 @@ class _ReportDetailsScreenState extends State<ReportDetailsScreen> {
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
-        child: ListView(
-          children: [
-            Text(
-              widget.report.description,
-              style: const TextStyle(fontSize: 16),
-            ),
-            const SizedBox(height: 20),
-            ...widget.report.questions.map((q) {
-              return Card(
-                margin: const EdgeInsets.symmetric(vertical: 5),
-                child: Padding(
-                  padding: const EdgeInsets.all(10.0),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        q.questionText,
-                        style: const TextStyle(fontWeight: FontWeight.bold),
+        child:
+            widget.report.questions.isEmpty
+                ? const Center(
+                  child: Text('لا توجد أسئلة لعرضها في هذا التقرير'),
+                )
+                : ListView(
+                  children: [
+                    const SizedBox(height: 20),
+                    ...widget.report.questions.map((q) {
+                      return Card(
+                        margin: const EdgeInsets.symmetric(vertical: 5),
+                        child: Padding(
+                          padding: const EdgeInsets.all(10.0),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                q.questionText,
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              _buildQuestionCard(q),
+                            ],
+                          ),
+                        ),
+                      );
+                    }).toList(),
+                    const SizedBox(height: 20),
+                    if (!_isSubmitted)
+                      ElevatedButton(
+                        onPressed: _isSubmitting ? null : _submitReport,
+                        child:
+                            _isSubmitting
+                                ? const CircularProgressIndicator()
+                                : const Text('إرسال'),
+                      )
+                    else
+                      const Center(
+                        child: Text(
+                          'لقد تم إرسال هذا التقرير مسبقًا ✅',
+                          style: TextStyle(
+                            color: Colors.green,
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
                       ),
-                      if (q.questionType == 'text')
-                        TextField(
-                          onChanged: (value) => _answers[q.id] = value,
-                          decoration: const InputDecoration(
-                            hintText: 'أدخل إجابتك هنا',
-                          ),
-                          enabled:
-                              !_isSubmitted, // تعطيل الإدخال إذا كان التقرير مرسل مسبقًا
-                        ),
-                      if (q.questionType == 'true_false')
-                        SwitchListTile(
-                          title: const Text('نعم / لا'),
-                          value: _answers[q.id] ?? false,
-                          onChanged:
-                              _isSubmitted
-                                  ? null
-                                  : (value) =>
-                                      setState(() => _answers[q.id] = value),
-                        ),
-                      if (q.questionType == 'multiple_choice') ...[
-                        if (q.option1 != null)
-                          RadioListTile<int>(
-                            title: Text(q.option1!),
-                            value: 1,
-                            groupValue: _answers[q.id],
-                            onChanged:
-                                _isSubmitted
-                                    ? null
-                                    : (value) =>
-                                        setState(() => _answers[q.id] = value),
-                          ),
-                        if (q.option2 != null)
-                          RadioListTile<int>(
-                            title: Text(q.option2!),
-                            value: 2,
-                            groupValue: _answers[q.id],
-                            onChanged:
-                                _isSubmitted
-                                    ? null
-                                    : (value) =>
-                                        setState(() => _answers[q.id] = value),
-                          ),
-                        if (q.option3 != null)
-                          RadioListTile<int>(
-                            title: Text(q.option3!),
-                            value: 3,
-                            groupValue: _answers[q.id],
-                            onChanged:
-                                _isSubmitted
-                                    ? null
-                                    : (value) =>
-                                        setState(() => _answers[q.id] = value),
-                          ),
-                        if (q.option4 != null)
-                          RadioListTile<int>(
-                            title: Text(q.option4!),
-                            value: 4,
-                            groupValue: _answers[q.id],
-                            onChanged:
-                                _isSubmitted
-                                    ? null
-                                    : (value) =>
-                                        setState(() => _answers[q.id] = value),
-                          ),
-                      ],
-                    ],
-                  ),
+                  ],
                 ),
-              );
-            }).toList(),
-            const SizedBox(height: 20),
-            if (!_isSubmitted)
-              ElevatedButton(
-                onPressed: _isSubmitting ? null : _submitReport,
-                child:
-                    _isSubmitting
-                        ? const CircularProgressIndicator()
-                        : const Text('إرسال'),
-              )
-            else
-              const Center(
-                child: Text(
-                  'لقد تم إرسال هذا التقرير مسبقًا ✅',
-                  style: TextStyle(
-                    color: Colors.green,
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ),
-          ],
-        ),
       ),
     );
   }
