@@ -29,6 +29,7 @@ class _ReportScreenState extends State<ReportScreen> {
     _checkSubmittedReports();
   }
 
+
   /// Check if the user is a manager
   Future<void> _checkIfUserManager() async {
     final SharedPreferences prefs = await SharedPreferences.getInstance();
