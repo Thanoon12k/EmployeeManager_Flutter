@@ -3,6 +3,7 @@ import 'package:employee_manager_app/home.dart';
 import 'package:employee_manager_app/login.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:permission_handler/permission_handler.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -12,8 +13,21 @@ void main() {
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
+  Future<void> _checkPermissions() async {
+    var storage = await Permission.storage.status;
+    var internet = await Permission.manageExternalStorage.status;
+
+    if (!storage.isGranted) {
+      await Permission.storage.request();
+    }
+    if (!internet.isGranted) {
+      await Permission.manageExternalStorage.request();
+    }
+  }
+
   Future<User?> _getUserDetails() async {
     try {
+      await _checkPermissions();
       final SharedPreferences prefs = await SharedPreferences.getInstance();
 
       String? username = prefs.getString('username');
@@ -27,7 +41,9 @@ class MyApp extends StatelessWidget {
       String? image = prefs.getString('image');
       String? token = prefs.getString('token') ?? "bad token";
       bool? is_manager = prefs.getBool('is_manager');
-
+      print(
+        "user getting details :  {$username, $email, $birthDate, $address, $phone, $image, $token, $is_manager}",
+      );
       return User(
         id: int.tryParse(id ?? '-99') ?? -99,
         username: username,

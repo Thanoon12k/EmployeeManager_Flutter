@@ -1,5 +1,5 @@
 import 'package:employee_manager_app/classes.dart';
-import 'package:employee_manager_app/report_details.dart';
+import 'package:employee_manager_app/report.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
@@ -29,13 +29,11 @@ class _ReportScreenState extends State<ReportScreen> {
     _checkSubmittedReports();
   }
 
-
   /// Check if the user is a manager
   Future<void> _checkIfUserManager() async {
     final SharedPreferences prefs = await SharedPreferences.getInstance();
     setState(() {
       _isManager = prefs.getBool('is_manager') ?? false;
-      _isManager = true;
     });
   }
 

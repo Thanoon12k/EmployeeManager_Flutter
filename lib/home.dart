@@ -1,9 +1,12 @@
 import 'package:employee_manager_app/classes.dart';
-import 'package:employee_manager_app/announcements.dart';
+import 'package:employee_manager_app/complaint.dart';
+import 'package:employee_manager_app/list_announcements.dart';
+import 'package:employee_manager_app/list_complaints.dart';
 import 'package:employee_manager_app/login.dart';
-import 'package:employee_manager_app/reports.dart';
+import 'package:employee_manager_app/list_reports.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class MainScreen extends StatelessWidget {
   const MainScreen({super.key});
@@ -58,10 +61,24 @@ class HomeScreen extends StatelessWidget {
 
   const HomeScreen({super.key, required this.user});
 
+  void _launchEmployeesURL() async {
+    final Uri url = Uri.parse(
+      'https://thanoon.pythonanywhere.com/admin/mainapp/user/',
+    );
+    if (!await launchUrl(url)) {
+      throw Exception('Could not launch $url');
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       bottomNavigationBar: BottomNavigationBar(
+        backgroundColor: const Color.fromARGB(255, 255, 255, 255),
+        selectedItemColor: Colors.deepPurple,
+        unselectedItemColor: const Color.fromARGB(255, 92, 65, 138),
+        type: BottomNavigationBarType.fixed,
+
         items: [
           BottomNavigationBarItem(icon: Icon(Icons.home), label: 'الرئيسية'),
           BottomNavigationBarItem(icon: Icon(Icons.book), label: 'الإعلانات'),
@@ -69,11 +86,14 @@ class HomeScreen extends StatelessWidget {
             icon: Icon(Icons.query_stats),
             label: 'الاستبيانات',
           ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.report_problem),
+            label: 'الشكاوى',
+          ),
         ],
         onTap: (index) {
           switch (index) {
             case 0:
-              {}
               break;
             case 1:
               Navigator.push(
@@ -87,9 +107,25 @@ class HomeScreen extends StatelessWidget {
                 MaterialPageRoute(builder: (context) => ReportScreen()),
               );
               break;
+            case 3:
+              if (user.is_manager == true) {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => ListComplaintsScreen(),
+                  ),
+                );
+              } else {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => AddComplaintScreen()),
+                );
+              }
+              break;
           }
         },
       ),
+
       body: Scaffold(
         appBar: AppBar(
           title: Text('الرئيسية'),
@@ -99,7 +135,6 @@ class HomeScreen extends StatelessWidget {
         body: Column(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            // User image and greeting section
             Column(
               children: [
                 SizedBox(height: 40),
@@ -125,10 +160,18 @@ class HomeScreen extends StatelessWidget {
                   ),
                   textAlign: TextAlign.center,
                 ),
+                if (user.is_manager) ...[
+                  SizedBox(height: 20),
+                  IconButton(
+                    onPressed: _launchEmployeesURL,
+                    icon: Icon(Icons.people),
+                    color: const Color.fromARGB(255, 85, 84, 87),
+                    iconSize: 30,
+                  ),
+                ],
               ],
             ),
 
-            // User details section
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 24.0),
               child: Column(
@@ -147,18 +190,14 @@ class HomeScreen extends StatelessWidget {
               ),
             ),
 
-            // Logout button at the bottom center
             Padding(
               padding: const EdgeInsets.only(bottom: 30.0),
               child: ElevatedButton.icon(
                 onPressed: () async {
-                  // Clear all shared preferences
                   final prefs = await SharedPreferences.getInstance();
 
                   await prefs.clear();
                   print("shared cleaned: ${prefs.getKeys()}");
-                  // Optionally, you can also clear the user data from the app
-                  // Navigate to the login screen
                   Navigator.pushAndRemoveUntil(
                     context,
                     MaterialPageRoute(builder: (context) => LoginScreen()),
@@ -186,7 +225,6 @@ class HomeScreen extends StatelessWidget {
   }
 }
 
-// Reusable widget for displaying user info in rows
 class InfoRow extends StatelessWidget {
   final String label;
   final String value;

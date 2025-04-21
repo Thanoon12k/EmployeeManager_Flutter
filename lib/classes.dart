@@ -122,3 +122,32 @@ class Report {
     );
   }
 }
+
+class Complaint {
+  final int id;
+  final String complainant;
+  final String respondent;
+  final String text;
+  final String createdAt;
+  final bool isResolved;
+
+  Complaint({
+    required this.id,
+    required this.complainant,
+    required this.respondent,
+    required this.text,
+    required this.createdAt,
+    required this.isResolved,
+  });
+
+  factory Complaint.fromJson(Map<String, dynamic> json) {
+    return Complaint(
+      id: json['id'],
+      complainant: json['complainant'],
+      respondent: json['respondent'],
+      text: json['text'],
+      createdAt: json['created_at'],
+      isResolved: json['is_resolved'] ?? false,
+    );
+  }
+}

@@ -50,7 +50,10 @@ class _LoginScreenState extends State<LoginScreen> {
       if (response.statusCode == 200) {
         // Process successful login
         final responseData = json.decode(response.body);
-
+        print("resonse data user logged in: $responseData");
+        // print(
+        //   "User details saved - ID: ${responseData['id']}, Username: ${responseData['username']}, Email: ${responseData['email']}, is_manager: ${responseData['is_manager']}",
+        // );
         if (responseData.containsKey('id') &&
             responseData.containsKey('username') &&
             responseData.containsKey('token')) {
@@ -71,8 +74,7 @@ class _LoginScreenState extends State<LoginScreen> {
           await prefs.setString('image', responseData['image'] ?? "");
           await prefs.setString('token', responseData['token']);
           await prefs.setBool(
-            'is_manager',
-            responseData['is_manager'] ?? false,
+            'is_manager',responseData['is_manager'] ,
           );
 
           setState(() {

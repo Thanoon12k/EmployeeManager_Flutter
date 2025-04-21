@@ -5,6 +5,22 @@ Authorization: Token b895b0926cbd77e5e117247e6d48038439f7e81e
 ###
 GET http://thanoon.pythonanywhere.com/get-user-reports/ HTTP/1.1
 Authorization: Token b895b0926cbd77e5e117247e6d48038439f7e81e
+###
+GET http://thanoon.pythonanywhere.com/get-complaints-list/ HTTP/1.1
+Authorization: Token efdd6b90521dc82481f734b36577a2f06bd55d5a
+###
+GET https://thanoon.pythonanywhere.com/get-users-list/ HTTP/1.1
+Authorization: Token efdd6b90521dc82481f734b36577a2f06bd55d5a
+
+###
+POST http://thanoon.pythonanywhere.com/submit-complaint/ HTTP/1.1
+Authorization: Token efdd6b90521dc82481f734b36577a2f06bd55d5a
+Content-Type: application/json
+
+{
+    "text": "This is a complaint text",
+    "respondent": "ali"
+}
 
 ###
 POST http://thanoon.pythonanywhere.com/submit-report/ HTTP/1.1

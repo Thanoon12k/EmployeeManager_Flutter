@@ -1,9 +1,10 @@
 import 'package:employee_manager_app/classes.dart';
-import 'package:employee_manager_app/announcement_details.dart';
+import 'package:employee_manager_app/announcement.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class AnnouncementScreen extends StatefulWidget {
   const AnnouncementScreen({super.key});
@@ -18,11 +19,29 @@ class _AnnouncementScreenState extends State<AnnouncementScreen> {
   List<Announcement> readed_announcements = [];
   bool _isLoading = true;
   bool _hasError = false;
+  bool _isManager = false;
 
   @override
   void initState() {
     super.initState();
+    _checkIfUserManager();
     _fetchAnnouncements();
+  }
+
+  Future<void> _checkIfUserManager() async {
+    final SharedPreferences prefs = await SharedPreferences.getInstance();
+    setState(() {
+      _isManager = prefs.getBool('is_manager') ?? false;
+    });
+  }
+
+  Future<void> _openWebPage(String url) async {
+    final Uri uri = Uri.parse(url);
+    try {
+      await launchUrl(uri, mode: LaunchMode.externalApplication);
+    } catch (e) {
+      print('Could not launch $url: $e');
+    }
   }
 
   Future<void> _fetchAnnouncements() async {
@@ -98,6 +117,21 @@ class _AnnouncementScreenState extends State<AnnouncementScreen> {
         appBar: AppBar(
           title: const Text('الإعلانات', style: TextStyle(fontFamily: 'Cairo')),
           actions: [
+            if (_isManager)
+              IconButton(
+                icon: const Icon(Icons.add),
+                tooltip: 'إضافة إعلان جديد',
+                onPressed: () {
+                  _openWebPage(
+                    'https://thanoon.pythonanywhere.com/admin/mainapp/announcement/add/',
+                  );
+                },
+              ),
+            IconButton(
+              icon: const Icon(Icons.refresh),
+              tooltip: 'تحديث',
+              onPressed: _fetchAnnouncements,
+            ),
             Switch(
               value: _showUnreadOnly,
               onChanged: (value) async {
